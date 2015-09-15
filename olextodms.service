@@ -1,0 +1,9 @@
+[Unit]
+Description=OlexToDms
+
+[Service]
+Execstart=/home/pi/olextodms/olextodms.py
+
+[Install]
+WantedBy=multi-user.target
+
