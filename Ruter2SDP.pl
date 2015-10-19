@@ -137,7 +137,7 @@ sub decodeArgs {
 		  $layer--;
 		  push (@plottsett,2**$layer);
 		}
-	} elsif (/^--name=(.*)$/) {
+	} elsif (/^Navn (.*)$/) {
 		$fast_rutenavn = $1;
 	} else {
 		if (-f $_){ push (@files,$_); }	# input file
@@ -167,7 +167,7 @@ sub flushdata {
   }
 
   # write element header
-  printf "TrackName,%s\n",$rutenavn;
+  printf "TrackName,%s\n",basename($files[0], ".tmp");
   printf "NoOfWp,%d\n",   $#lat+1;
   printf "Datum,%s\n",    $DATUM;
   print  "WP$header[0]";
