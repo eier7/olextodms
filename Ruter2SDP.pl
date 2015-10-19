@@ -13,6 +13,21 @@
 # By: A. Lagestrand, al@blom.no                      20(c)03 Blom Maritime AS
 # ---------------------------------------------------------------------------
 
+
+
+
+
+#----------------------------------------------
+#Endret navn og datoprinting
+#eivind.ervik@gmail.com
+#
+#
+#
+#
+#
+#
+#----------------------------------------------
+#
 use File::Basename;
 use Time::Local;
 use Math::Trig;
@@ -29,6 +44,9 @@ $DATUM     = "WGS84";	# always WGS84 in Olex Chart System
 ($file,@files) = ();
 (@lat,@lon) = ();
 @plottsett  = ();
+my ($day, $month, $year, $dayofweek) = (localtime)[3,4,5,6];
+$month = qw(January February March April May June July August September October November December )[$month];
+$dayofweek = qw(Monday Tuesday Wednesday Thursday Friday Saturday Sunday)[$dayofweek];
 
 
 # ---------------------------------------------------------------------------
@@ -149,7 +167,7 @@ sub flushdata {
   }
 
   # write element header
-  printf "Trackname,%s\n",$rutenavn;
+  printf "TrackName,%s\n",$rutenavn;
   printf "NoOfWp,%d\n",   $#lat+1;
   printf "Datum,%s\n",    $DATUM;
   print  "WP$header[0]";
@@ -227,6 +245,7 @@ sub DPfooter { print "END\n"; }
 sub DPheader {
   my $Version = 4;
   my @time = localtime();
-  printf "%04d-%02d:%02d\n",$time[5]+1900,$time[2],$time[1];
+  printf "CreateDate,%s.%s%d.%04d-%02d:%02d\n",$dayofweek,$month,$day,$time[5]+1900,$time[2],$time[1];
+  #printf "%04d-%02d:%02d\n",$time[5]+1900,$time[2],$time[1];
   printf "Version,%d\n",$Version;
 }
