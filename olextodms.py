@@ -58,6 +58,8 @@ while(True):
                                 os.makedirs("/mnt/usb/utm")
                             if not os.path.exists("/mnt/usb/dp"):
                                 os.makedirs("/mnt/usb/dp")
+                            if not os.path.exists("/mnt/usb/dpt"):
+                                os.makedirs("/mnt/usb/dpt")
                             for rutefil in os.listdir("/mnt/usb"):
                                 if(rutefil.endswith(".gz")):
                                     try:
@@ -74,19 +76,6 @@ while(True):
                                                 utmd = utm.from_latlon(lat,lon)
                                                 o.write("%0.2f" % utmd[0] + "," + "%0.2f" % utmd[1] + ","  + str(utmd[2]) + "," + utmd[3] + "\r\n")
                                                 libc.sync()
-#                                        if(lat > 0): latd = 'N'
-#                                        else:        latd = 'S'
-#                                        if(lon > 0): lond = 'E'
-#                                        else:        lond = 'W'
-#                                        Dlat = str(math.floor(lat))
-#                                        Mlat = str(math.floor(abs(lat) * 60) % 60)
-#                                        Slat = (abs(lat) * 3600) % 60
-#                                        Slat = str("%.4f" % Slat)
-#                                        Dlon = str(math.floor(lon))
-#                                        Mlon = str(math.floor(abs(lon) * 60) % 60)
-#                                        Slon = (abs(lon) * 3600) % 60
-#                                        Slon = str("%.4f" % Slon)
-#                                        o.write(Dlat+ u"\N{DEGREE SIGN}" + Mlat + "\'" + Slat +"\"" + latd + "," +  Dlon + u"\N{DEGREE SIGN}" + Mlon + "\'" + Slon +"\"" + lond + "\r\n")
                                         odp.close()         
                                         proc = subprocess.Popen(["/home/pi/olextodms/Ruter2SDP.pl", "/mnt/usb/%s" % os.path.splitext(rutefil)[0] + ".tmp"], stdout=subprocess.PIPE)
                                         (out, err) = proc.communicate()
@@ -98,10 +87,37 @@ while(True):
                                         GPIO.output(powerled, 1)
                                         time.sleep(.1)
                                         GPIO.output(powerled, 0)
+                                        o.close()
+                                        f.close()
                                     except:
                                         print("FILE ERROR")
-                            o.close()
-                            f.close()
+                                elif(rutefil.endswith(".csv")):
+                                    try:
+                                        tmpstring = ""
+                                        with open("/mnt/usb/%s" % rutefil, "r", errors="ignore") as infile:
+                                            for line in infile:
+                                                m = re.search("(\d*\.\d*)([N|S]),(\d*\.\d*)([E|W]),(-?\d*)", line)
+                                                if m:
+                                                    lat = str(float(m.group(1)))
+                                                    lon = str(float(m.group(3)))
+                                                    dep = str(abs(float(m.group(5))))
+                                                    if(m.group(2) == 'S'):
+                                                        lat = -lat
+                                                    if(m.group(4) == 'W'):
+                                                        lon = -lon
+                                                    tmpstring = tmpstring+lat+" "+lon+" "+dep+"\n"
+                                                    if(len(tmpstring) > 100000):
+                                                        outfile = open("/mnt/usb/dpt/%s" % os.path.splitext(rutefil)[0], "a")
+                                                        outfile.write(tmpstring)
+                                                        outfile.close()
+                                                        tmpstring = ""
+                                        outfile = open("/mnt/usb/dpt/%s" % os.path.splitext(rutefil)[0], "a")
+                                        outfile.write(tmpstring)
+                                        outfile.close()
+                                        tmpstring = ""
+                                    except:
+                                        for e in sys.exc_info():
+                                            print(e)
                             p = subprocess.Popen(["umount", "/mnt/usb"])
                             p.communicate()
                             print("KONVERTERING FERDIG")
@@ -110,6 +126,8 @@ while(True):
 
     except:
         print("ERROR")
+        for e in sys.exc_info():
+            print(e)
         GPIO.output(powerled, 1)
         GPIO.output(busyled, 0)
     time.sleep(1)
