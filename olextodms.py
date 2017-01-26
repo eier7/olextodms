@@ -26,6 +26,34 @@ GPIO.output(powerled, 1)
 found = True
 devices = []
 
+def SOSI(coords, filnavn):
+    print(filnavn)
+    sosiut = open("/mnt/usb/sosi/%s" % os.path.splitext(filnavn)[0] + ".sosi", "w+")
+    sosiut.write(".HODE\n")
+    sosiut.write("..TEGNSETT ISO8859-10\n")
+    sosiut.write("..TRANSPAR\n")
+    koordsys = "23"
+    sosiut.write("...KOORDSYS "+koordsys+"\n")
+    sosiut.write("...ORIGO-N\xD8 0 0\n")
+    sosiut.write("...ENHET 0.01\n") #centimeter)
+    sosiut.write("..SOSI-VERSJON 4.0\n")
+    sosiut.write("..SOSI-NI\xC5 4\n")
+    sosiut.write("..OMR\xC5DE\n")
+    sosiut.write("...MIN-N\xD8"+ str(float(coords[0][0])-100)+" "+ str(float(coords[0][1])-100)+"\n")
+    sosiut.write("...MAX-N\xD8"+ str(float(coords[-1:][0])+100)+" "+ str(float(coords[-1:][1])+100)+"\n")
+    sosiut.write("..INNHOLD\n")
+    sosiut.write("...PRODUKTSPEK\n")
+    sosiut.write(".KURVE 1:\n")
+    sosiut.write("..OBJTYPE Kabel\n")
+    sosiut.write("..DATAFANGSTDATO YYYYMMDD\n")
+    sosiut.write("..N\xD8\n")
+    for p in coords:
+        sosiut.write(coords[0]+" "+coords[1]+"\n")
+
+    sosiut.write(".SLUTT\n")
+    sosiut.close()
+
+
 while(True):
     try:
         partitionsFile = open("/proc/partitions")
@@ -60,14 +88,16 @@ while(True):
                                 os.makedirs("/mnt/usb/dp")
                             if not os.path.exists("/mnt/usb/dpt"):
                                 os.makedirs("/mnt/usb/dpt")
+                            if not os.path.exists("/mnt/usb/sosi"):
+                                os.makedirs("/mnt/usb/sosi")
                             for rutefil in os.listdir("/mnt/usb"):
-                                if(rutefil.endswith(".gz")):
+                                if(rutefil.endswith(".gz")): #fra OLEX til CSV og DP
                                     try:
                                         f = gzip.open("/mnt/usb/%s" % rutefil) 
                                         o = open("/mnt/usb/utm/%s" % os.path.splitext(rutefil)[0] + ".csv", "w+", encoding="latin-1")
                                         odp = open("/mnt/usb/%s" % os.path.splitext(rutefil)[0] + ".tmp", "w+", encoding="latin-1")
                                         for line in f:
-                                            line = line.decode("utf-8")
+                                            line = line.decode("utf-8", errors="ignore")
                                             odp.write(line)
                                             m = re.match("^(\d*\.\d*) (\d*\.\d*)", line)
                                             if(m):
@@ -77,7 +107,7 @@ while(True):
                                                 o.write("%0.2f" % utmd[0] + "," + "%0.2f" % utmd[1] + ","  + str(utmd[2]) + "," + utmd[3] + "\r\n")
                                                 libc.sync()
                                         odp.close()         
-                                        proc = subprocess.Popen(["/home/pi/olextodms/Ruter2SDP.pl", "/mnt/usb/%s" % os.path.splitext(rutefil)[0] + ".tmp"], stdout=subprocess.PIPE)
+                                        proc = subprocess.Popen([os.getcwd()+"/Ruter2SDP.pl", "/mnt/usb/%s" % os.path.splitext(rutefil)[0] + ".tmp"], stdout=subprocess.PIPE)
                                         (out, err) = proc.communicate()
                                         fdp = open("/mnt/usb/dp/%s" % os.path.splitext(rutefil)[0] + ".txt", "w+")
                                         out = out.decode("latin-1")
@@ -91,7 +121,7 @@ while(True):
                                         f.close()
                                     except:
                                         print("FILE ERROR")
-                                elif(rutefil.endswith(".csv")):
+                                elif(rutefil.endswith(".csvd")): #CSV dybdefil til OLEX
                                     try:
                                         tmpstring = ""
                                         with open("/mnt/usb/%s" % rutefil, "r", errors="ignore") as infile:
@@ -118,6 +148,20 @@ while(True):
                                     except:
                                         for e in sys.exc_info():
                                             print(e)
+
+                                elif(rutefil.endswith(".csv")): #CSV til SOSI
+                                    try:
+                                        coords = []
+                                        with open("/mnt/usb/%s" % rutefil, "r", errors="ignore") as infile:
+                                            for line in infile:
+                                                m = re.search("(\d*\.\d*),(\d*\.\d*),(\d*),(\D)", line)
+                                                if m:
+                                                  coords.append([m.group(1), m.group(2), m.group(3), m.group(4)])
+                                        SOSI(coords, rutefil)
+                                    except:
+                                        for e in sys.exc_info():
+                                            print(e)
+
                             p = subprocess.Popen(["umount", "/mnt/usb"])
                             p.communicate()
                             print("KONVERTERING FERDIG")
