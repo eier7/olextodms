@@ -27,31 +27,41 @@ found = True
 devices = []
 
 def SOSI(coords, filnavn):
-    print(filnavn)
-    sosiut = open("/mnt/usb/sosi/%s" % os.path.splitext(filnavn)[0] + ".sosi", "w+")
+    print("SOSIbitch")
+    sosiut = open("/mnt/usb/sosi/%s" % os.path.splitext(filnavn)[0] + ".sos", "w+", encoding='iso8859-10')
     sosiut.write(".HODE\n")
     sosiut.write("..TEGNSETT ISO8859-10\n")
     sosiut.write("..TRANSPAR\n")
     koordsys = "23"
     sosiut.write("...KOORDSYS "+koordsys+"\n")
-    sosiut.write("...ORIGO-NØ 0 0\n")
+    sosiut.write("...ORIGO-N\xd8 0 0\n")
     sosiut.write("...ENHET 0.01\n") #centimeter)
     sosiut.write("..SOSI-VERSJON 4.0\n")
-    sosiut.write("..SOSI-NIÅ 4\n")
-    sosiut.write("..OMRÅDE\n")
-    sosiut.write("...MIN-NØ"+ str(float(coords[0][0])-100)+" "+ str(float(coords[0][1])-100)+"\n")
-    sosiut.write("...MAX-NØ"+ str(float(coords[-1:][0])+100)+" "+ str(float(coords[-1:][1])+100)+"\n")
+    sosiut.write("..SOSI-NIV\xc5 4\n")
+    sosiut.write("..OMR\xc5DE\n")
+    sosiut.write("...MIN-N\xd8 "+ str(coords[0][0])+" "+ str(coords[0][1])+"\n")
+    sosiut.write("...MAX-N\xd8 "+ str(coords[0][0])+" "+ str(coords[0][1])+"\n")
     sosiut.write("..INNHOLD\n")
     sosiut.write("...PRODUKTSPEK\n")
     sosiut.write(".KURVE 1:\n")
     sosiut.write("..OBJTYPE Kabel\n")
     sosiut.write("..DATAFANGSTDATO YYYYMMDD\n")
-    sosiut.write("..NØ\n")
+    sosiut.write("..N\xd8\n")
     for p in coords:
-        sosiut.write(coords[0]+" "+coords[1]+"\n")
+        sosiut.write(p[0]+" "+p[1]+"\n")
 
     sosiut.write(".SLUTT\n")
     sosiut.close()
+
+def csvtilsosi(filnavn):
+    print("csvtilsosibitch")
+    coords = []
+    with open("/mnt/usb/utm/%s" % filnavn, "r", errors="ignore") as infile:
+        for line in infile:
+            m = re.search("(\d*\.\d*),(\d*\.\d*),(\d*),(\D)", line)
+            if m:
+              coords.append([m.group(1), m.group(2), m.group(3), m.group(4)])
+    SOSI(coords, filnavn)
 
 
 while(True):
@@ -118,9 +128,12 @@ while(True):
                                         time.sleep(.1)
                                         GPIO.output(powerled, 0)
                                         o.close()
+                                        csvtilsosi(os.path.splitext(rutefil)[0] + ".csv")
                                         f.close()
                                     except:
-                                        print("FILE ERROR")
+                                        print("FEIL OLEX TIL DP/UTM/SOSI\n\n")
+                                        for e in sys.exc_info():
+                                            print(e)
                                 elif(rutefil.endswith(".csvd")): #CSV dybdefil til OLEX
                                     try:
                                         tmpstring = ""
@@ -149,18 +162,13 @@ while(True):
                                         for e in sys.exc_info():
                                             print(e)
 
-                                elif(rutefil.endswith(".csv")): #CSV til SOSI
-                                    try:
-                                        coords = []
-                                        with open("/mnt/usb/%s" % rutefil, "r", errors="ignore") as infile:
-                                            for line in infile:
-                                                m = re.search("(\d*\.\d*),(\d*\.\d*),(\d*),(\D)", line)
-                                                if m:
-                                                  coords.append([m.group(1), m.group(2), m.group(3), m.group(4)])
-                                        SOSI(coords, rutefil)
-                                    except:
-                                        for e in sys.exc_info():
-                                            print(e)
+                                #elif(rutefil.endswith(".csv")): #CSV til SOSI
+                                #    try:
+                                #        csvtilsosi(rutefil)
+                                #    except:
+                                #        print("FEIL CSV TIL SOSI\n\n")
+                                #        for e in sys.exc_info():
+                                #            print(e)
 
                             p = subprocess.Popen(["umount", "/mnt/usb"])
                             p.communicate()
