@@ -39,8 +39,21 @@ def SOSI(coords, filnavn):
     sosiut.write("..SOSI-VERSJON 4.0\n")
     sosiut.write("..SOSI-NIV\xc5 4\n")
     sosiut.write("..OMR\xc5DE\n")
-    sosiut.write("...MIN-N\xd8 "+ str(coords[0][0])+" "+ str(coords[0][1])+"\n")
-    sosiut.write("...MAX-N\xd8 "+ str(coords[0][0])+" "+ str(coords[0][1])+"\n")
+    xmin = coords[0][0]
+    ymin = coords[0][1]
+    xmax = 0
+    ymax = 0
+    for c in coords:
+        xmin = min(xmin, c[0])
+        ymin = min(ymin, c[1])
+        xmax = max(xmax, c[0])
+        ymax = max(ymax, c[1])
+    xmin = (xmin/100)-100
+    ymin = (ymin/100)-100
+    xmax = (xmax/100)+100
+    ymax = (ymax/100)+100
+    sosiut.write("...MIN-N\xd8 "+ str(xmin)+" "+ str(ymin)+"\n")
+    sosiut.write("...MAX-N\xd8 "+ str(xmax)+" "+ str(ymax)+"\n")
     sosiut.write("..INNHOLD\n")
     sosiut.write("...PRODUKTSPEK\n")
     sosiut.write(".KURVE 1:\n")
@@ -48,7 +61,7 @@ def SOSI(coords, filnavn):
     sosiut.write("..DATAFANGSTDATO YYYYMMDD\n")
     sosiut.write("..N\xd8\n")
     for p in coords:
-        sosiut.write(p[0]+" "+p[1]+"\n")
+        sosiut.write(str(p[0])+" "+str(p[1])+"\n")
 
     sosiut.write(".SLUTT\n")
     sosiut.close()
@@ -60,7 +73,7 @@ def csvtilsosi(filnavn):
         for line in infile:
             m = re.search("(\d*\.\d*),(\d*\.\d*),(\d*),(\D)", line)
             if m:
-              coords.append([m.group(1), m.group(2), m.group(3), m.group(4)])
+              coords.append([int(float(m.group(2))*100), int(float(m.group(1))*100), m.group(3), m.group(4)])
     SOSI(coords, filnavn)
 
 
