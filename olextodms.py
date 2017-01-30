@@ -10,6 +10,7 @@ import time
 import gzip
 import ctypes
 import subprocess
+import datetime
 import RPi.GPIO as GPIO
 
 libc = ctypes.CDLL("libc.so.6")
@@ -26,14 +27,12 @@ GPIO.output(powerled, 1)
 found = True
 devices = []
 
-def SOSI(coords, filnavn):
-    print("SOSIbitch")
+def SOSI(coords, filnavn, timestamp):
     sosiut = open("/mnt/usb/sosi/%s" % os.path.splitext(filnavn)[0] + ".sos", "w+", encoding='iso8859-10')
     sosiut.write(".HODE\n")
     sosiut.write("..TEGNSETT ISO8859-10\n")
     sosiut.write("..TRANSPAR\n")
-    koordsys = "23"
-    sosiut.write("...KOORDSYS "+koordsys+"\n")
+    sosiut.write("...KOORDSYS 23\n")
     sosiut.write("...ORIGO-N\xd8 0 0\n")
     sosiut.write("...ENHET 0.01\n") #centimeter)
     sosiut.write("..SOSI-VERSJON 4.0\n")
@@ -58,7 +57,11 @@ def SOSI(coords, filnavn):
     sosiut.write("...PRODUKTSPEK\n")
     sosiut.write(".KURVE 1:\n")
     sosiut.write("..OBJTYPE Kabel\n")
-    sosiut.write("..DATAFANGSTDATO YYYYMMDD\n")
+    try:
+        tid = datetime.datetime.fromtimestamp(int(timestamp)).strftime("%Y%m%d")
+    except:
+        tid = "00000000"
+    sosiut.write("..DATAFANGSTDATO "+tid+"\n")
     sosiut.write("..N\xd8\n")
     for p in coords:
         sosiut.write(str(p[0])+" "+str(p[1])+"\n")
@@ -66,15 +69,14 @@ def SOSI(coords, filnavn):
     sosiut.write(".SLUTT\n")
     sosiut.close()
 
-def csvtilsosi(filnavn):
-    print("csvtilsosibitch")
+def csvtilsosi(filnavn, timestamp):
     coords = []
     with open("/mnt/usb/utm/%s" % filnavn, "r", errors="ignore") as infile:
         for line in infile:
-            m = re.search("(\d*\.\d*),(\d*\.\d*),(\d*),(\D)", line)
+            m = re.search("(-?\d*\.\d*),(-?\d*\.\d*),(\d*),(\D)", line)
             if m:
               coords.append([int(float(m.group(2))*100), int(float(m.group(1))*100), m.group(3), m.group(4)])
-    SOSI(coords, filnavn)
+    SOSI(coords, filnavn, timestamp)
 
 
 while(True):
@@ -83,7 +85,7 @@ while(True):
         lines = partitionsFile.readlines()[2:]
         if len(devices) > 0 and not found:
             devices.pop()
-            print("USB-ENHET FRAKOBLET")
+            print("\nUSB-ENHET FRAKOBLET\n")
         found = False
         for line in lines:
             words = [x.strip() for x in line.split()]
@@ -100,7 +102,7 @@ while(True):
                         if not len(devices) > 0:
                             GPIO.output(busyled, 1)
                             GPIO.output(powerled, 0)
-                            print("FANT USB-ENHET")
+                            print("\nFANT USB-ENHET\n")
                             devices.append(deviceName)
                             p = subprocess.Popen(["mount", "-t", "auto", "/dev/%s" % deviceName + "1", "/mnt/usb"])
                             p.communicate()
@@ -114,6 +116,7 @@ while(True):
                             if not os.path.exists("/mnt/usb/sosi"):
                                 os.makedirs("/mnt/usb/sosi")
                             for rutefil in os.listdir("/mnt/usb"):
+                                timestamp = 0
                                 if(rutefil.endswith(".gz")): #fra OLEX til CSV og DP
                                     try:
                                         f = gzip.open("/mnt/usb/%s" % rutefil) 
@@ -122,11 +125,14 @@ while(True):
                                         for line in f:
                                             line = line.decode("utf-8", errors="ignore")
                                             odp.write(line)
+                                            timesearch = re.match("^\d*\.\d* \d*\.\d* (\d*)", line)
+                                            if(timesearch):
+                                                timestamp = timesearch.group(1)
                                             m = re.match("^(\d*\.\d*) (\d*\.\d*)", line)
                                             if(m):
                                                 lat = float(m.group(1)) / 60
                                                 lon = float(m.group(2)) / 60
-                                                utmd = utm.from_latlon(lat,lon)
+                                                utmd = utm.from_latlon(lat,lon, force_zone_number=33)
                                                 o.write("%0.2f" % utmd[0] + "," + "%0.2f" % utmd[1] + ","  + str(utmd[2]) + "," + utmd[3] + "\r\n")
                                                 libc.sync()
                                         odp.close()         
@@ -141,10 +147,9 @@ while(True):
                                         time.sleep(.1)
                                         GPIO.output(powerled, 0)
                                         o.close()
-                                        csvtilsosi(os.path.splitext(rutefil)[0] + ".csv")
+                                        csvtilsosi(os.path.splitext(rutefil)[0] + ".csv", timestamp)
                                         f.close()
                                     except:
-                                        print("FEIL OLEX TIL DP/UTM/SOSI\n\n")
                                         for e in sys.exc_info():
                                             print(e)
                                 elif(rutefil.endswith(".csvd")): #CSV dybdefil til OLEX
@@ -175,22 +180,14 @@ while(True):
                                         for e in sys.exc_info():
                                             print(e)
 
-                                #elif(rutefil.endswith(".csv")): #CSV til SOSI
-                                #    try:
-                                #        csvtilsosi(rutefil)
-                                #    except:
-                                #        print("FEIL CSV TIL SOSI\n\n")
-                                #        for e in sys.exc_info():
-                                #            print(e)
-
                             p = subprocess.Popen(["umount", "/mnt/usb"])
                             p.communicate()
-                            print("KONVERTERING FERDIG")
+                            print("\nKONVERTERING FERDIG\n")
                             GPIO.output(busyled, 0)
                             GPIO.output(powerled, 1)
 
     except:
-        print("ERROR")
+        print("\nERROR\n")
         for e in sys.exc_info():
             print(e)
         GPIO.output(powerled, 1)
