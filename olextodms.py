@@ -162,7 +162,7 @@ while(True):
                                         GPIO.output(powerled, 0)
                                         odp.close()         
                                         print("\nkonverterer til "+os.path.splitext(rutefil)[0]+".txt\n")
-                                        proc = subprocess.Popen([os.getcwd()+"/Ruter2SDP.pl", "/mnt/usb/%s" % os.path.splitext(rutefil)[0] + ".tmp"], stdout=subprocess.PIPE)
+                                        proc = subprocess.Popen(["/home/alarm/olextodms/Ruter2SDP.pl", "/mnt/usb/%s" % os.path.splitext(rutefil)[0] + ".tmp"], stdout=subprocess.PIPE)
                                         (out, err) = proc.communicate()
                                         fdp = open("/mnt/usb/dp/%s" % os.path.splitext(rutefil)[0] + ".txt", "w+")
                                         out = out.decode("latin-1")
@@ -188,7 +188,7 @@ while(True):
                                         for e in sys.exc_info():
                                             print(e)
 
-                                elif(rutefil.endswith(".csvb")): #CSV dybdefil til OLEX
+                                elif(rutefil.endswith(".csvd")): #CSV dybdefil til OLEX
                                     try:
                                         print("\nkonverterer til "+os.path.splitext(rutefil)[0]+" (olex dybdefil)\n")
                                         tmpstring = ""
