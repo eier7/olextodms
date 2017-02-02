@@ -29,7 +29,6 @@ devices = []
 
 def SOSI(coords, filnavn, timestamp):
     try:
-        print("\nkonverterer til "+os.path.splitext(filnavn)[0]+".sos\n")
         sosiut = open("/mnt/usb/sosi/%s" % os.path.splitext(filnavn)[0] + ".sos", "w+", encoding='iso8859-10')
         sosiut.write(".HODE\n")
         sosiut.write("..TEGNSETT ISO8859-10\n")
@@ -70,29 +69,19 @@ def SOSI(coords, filnavn, timestamp):
 
         sosiut.write(".SLUTT\n")
         sosiut.close()
-        GPIO.output(powerled, 1)
-        time.sleep(.1)
-        GPIO.output(powerled, 0)
     except:
         print("FEIL MED SOSI")
         for e in sys.exc_info():
             print(e)
 
-def csvtilsosi(filnavn, timestamp, fromrootdir):
+def csvtilsosi(filnavn, timestamp):
     try:
         coords = []
-        if(fromrootdir):
-            with open("/mnt/usb/%s" % filnavn, "r", errors="ignore") as infile:
-                for line in infile:
-                    m = re.search("(-?\d*\.\d*),(-?\d*\.\d*),(\d*),(\D)", line)
-                    if m:
-                      coords.append([int(float(m.group(2))*100), int(float(m.group(1))*100), m.group(3), m.group(4)])
-        else: 
-            with open("/mnt/usb/utm/%s" % filnavn, "r", errors="ignore") as infile:
-                for line in infile:
-                    m = re.search("(-?\d*\.\d*),(-?\d*\.\d*),(\d*),(\D)", line)
-                    if m:
-                      coords.append([int(float(m.group(2))*100), int(float(m.group(1))*100), m.group(3), m.group(4)])
+        with open("/mnt/usb/utm/%s" % filnavn, "r", errors="ignore") as infile:
+            for line in infile:
+                m = re.search("(-?\d*\.\d*),(-?\d*\.\d*),(\d*),(\D)", line)
+                if m:
+                  coords.append([int(float(m.group(2))*100), int(float(m.group(1))*100), m.group(3), m.group(4)])
         SOSI(coords, filnavn, timestamp)
     except:
         print("FEIL MED CSV til SOSI forberedning")
@@ -143,7 +132,6 @@ while(True):
                                         f = gzip.open("/mnt/usb/%s" % rutefil) 
                                         o = open("/mnt/usb/utm/%s" % os.path.splitext(rutefil)[0] + ".csv", "w+", encoding="latin-1")
                                         odp = open("/mnt/usb/%s" % os.path.splitext(rutefil)[0] + ".tmp", "w+", encoding="latin-1")
-                                        print("\nkonverterer til "+os.path.splitext(rutefil)[0]+".csv\n")
                                         for line in f:
                                             line = line.decode("utf-8", errors="ignore")
                                             odp.write(line)
@@ -157,11 +145,7 @@ while(True):
                                                 utmd = utm.from_latlon(lat,lon, force_zone_number=33)
                                                 o.write("%0.2f" % utmd[0] + "," + "%0.2f" % utmd[1] + ","  + str(utmd[2]) + "," + utmd[3] + "\r\n")
                                                 libc.sync()
-                                        GPIO.output(powerled, 1)
-                                        time.sleep(.1)
-                                        GPIO.output(powerled, 0)
                                         odp.close()         
-                                        print("\nkonverterer til "+os.path.splitext(rutefil)[0]+".txt\n")
                                         proc = subprocess.Popen([os.getcwd()+"/Ruter2SDP.pl", "/mnt/usb/%s" % os.path.splitext(rutefil)[0] + ".tmp"], stdout=subprocess.PIPE)
                                         (out, err) = proc.communicate()
                                         fdp = open("/mnt/usb/dp/%s" % os.path.splitext(rutefil)[0] + ".txt", "w+")
@@ -169,28 +153,18 @@ while(True):
                                         out = out.replace("\n", "\r\n")
                                         fdp.write(out)
                                         fdp.close()
-                                        os.remove("/mnt/usb/" + os.path.splitext(rutefil)[0] + ".tmp")
                                         GPIO.output(powerled, 1)
                                         time.sleep(.1)
                                         GPIO.output(powerled, 0)
                                         o.close()
-                                        csvtilsosi(os.path.splitext(rutefil)[0] + ".csv", timestamp, False)
+                                        csvtilsosi(os.path.splitext(rutefil)[0] + ".csv", timestamp)
                                         f.close()
                                     except:
                                         print("FEIL MED LESING AV OLEX-FIL")
                                         for e in sys.exc_info():
                                             print(e)
-                                elif(rutefil.endswith(".csv")): #CSV til OLEX
+                                elif(rutefil.endswith(".csvd")): #CSV dybdefil til OLEX
                                     try:
-                                        csvtilsosi(rutefil, 0, True)
-                                    except:
-                                        print("FEIL MED CSV")
-                                        for e in sys.exc_info():
-                                            print(e)
-
-                                elif(rutefil.endswith(".csvb")): #CSV dybdefil til OLEX
-                                    try:
-                                        print("\nkonverterer til "+os.path.splitext(rutefil)[0]+" (olex dybdefil)\n")
                                         tmpstring = ""
                                         with open("/mnt/usb/%s" % rutefil, "r", errors="ignore") as infile:
                                             for line in infile:
@@ -213,9 +187,6 @@ while(True):
                                         outfile.write(tmpstring)
                                         outfile.close()
                                         tmpstring = ""
-                                        GPIO.output(powerled, 1)
-                                        time.sleep(.1)
-                                        GPIO.output(powerled, 0)
                                     except:
                                         print("FEIL MED DYBDEFIL")
                                         for e in sys.exc_info():
