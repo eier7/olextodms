@@ -34,7 +34,14 @@ def SOSI(coords, filnavn, timestamp):
         sosiut.write(".HODE\n")
         sosiut.write("..TEGNSETT ISO8859-10\n")
         sosiut.write("..TRANSPAR\n")
-        sosiut.write("...KOORDSYS 23\n")
+        koordsys=coords[0][2]
+        koordsys.replace("31", "21")
+        koordsys.replace("32", "22")
+        koordsys.replace("33", "23")
+        koordsys.replace("34", "24")
+        koordsys.replace("35", "25")
+        koordsys.replace("36", "26")
+        sosiut.write("...KOORDSYS "+koordsys+"\n")
         sosiut.write("...ORIGO-N\xd8 0 0\n")
         sosiut.write("...ENHET 0.01\n") #centimeter)
         sosiut.write("..SOSI-VERSJON 4.0\n")
@@ -49,10 +56,10 @@ def SOSI(coords, filnavn, timestamp):
             ymin = min(ymin, c[1])
             xmax = max(xmax, c[0])
             ymax = max(ymax, c[1])
-        xmin = (xmin/100)-100
-        ymin = (ymin/100)-100
-        xmax = (xmax/100)+100
-        ymax = (ymax/100)+100
+        xmin = (xmin/100)-1000
+        ymin = (ymin/100)-1000
+        xmax = (xmax/100)+1000
+        ymax = (ymax/100)+1000
         sosiut.write("...MIN-N\xd8 "+ str(xmin)+" "+ str(ymin)+"\n")
         sosiut.write("...MAX-N\xd8 "+ str(xmax)+" "+ str(ymax)+"\n")
         sosiut.write("..INNHOLD\n")
@@ -144,17 +151,27 @@ while(True):
                                         o = open("/mnt/usb/utm/%s" % os.path.splitext(rutefil)[0] + ".csv", "w+", encoding="latin-1")
                                         odp = open("/mnt/usb/%s" % os.path.splitext(rutefil)[0] + ".tmp", "w+", encoding="latin-1")
                                         print("\nkonverterer til "+os.path.splitext(rutefil)[0]+".csv\n")
+                                        zonenumber=33
+                                        for l in f:
+                                            l= l.decode("utf-8", errors="ignore")
+                                            n = re.match("^(-?\d*\.\d*) (-?\d*\.\d*)", l)
+                                            if(n):
+                                                lat = float(n.group(1)) / 60
+                                                lon = float(n.group(2)) / 60
+                                                utmt = utm.from_latlon(lat,lon)
+                                                zonenumber=utmt[2]
+                                                break
                                         for line in f:
                                             line = line.decode("utf-8", errors="ignore")
                                             odp.write(line)
-                                            timesearch = re.match("^\d*\.\d* \d*\.\d* (\d*)", line)
+                                            timesearch = re.match("^-?\d*\.\d* -?\d*\.\d* (\d*)", line)
                                             if(timesearch):
                                                 timestamp = timesearch.group(1)
-                                            m = re.match("^(\d*\.\d*) (\d*\.\d*)", line)
+                                            m = re.match("^(-?\d*\.\d*) (-?\d*\.\d*)", line)
                                             if(m):
                                                 lat = float(m.group(1)) / 60
                                                 lon = float(m.group(2)) / 60
-                                                utmd = utm.from_latlon(lat,lon, force_zone_number=33)
+                                                utmd = utm.from_latlon(lat,lon, force_zone_number=zonenumber)
                                                 o.write("%0.2f" % utmd[0] + "," + "%0.2f" % utmd[1] + ","  + str(utmd[2]) + "," + utmd[3] + "\r\n")
                                                 libc.sync()
                                         GPIO.output(powerled, 1)
