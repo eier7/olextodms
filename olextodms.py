@@ -141,6 +141,8 @@ while(True):
                                 os.makedirs("/mnt/usb/dp")
                             if not os.path.exists("/mnt/usb/dpt"):
                                 os.makedirs("/mnt/usb/dpt")
+                            if not os.path.exists("/mnt/usb/olexfradp"):
+                                os.makedirs("/mnt/usb/olexfradp")
                             if not os.path.exists("/mnt/usb/sosi"):
                                 os.makedirs("/mnt/usb/sosi")
                             for rutefil in os.listdir("/mnt/usb"):
@@ -197,6 +199,65 @@ while(True):
                                         print("FEIL MED LESING AV OLEX-FIL")
                                         for e in sys.exc_info():
                                             print(e)
+                                elif(rutefil.endswith(".txt")): #DP til OLEX
+                                    print("\nkonverterer fra DP til Olex")
+                                    try:
+                                        tilolex = []
+                                        dpdate = ""
+                                        timestamp = int(time.time())
+                                        with open("/mnt/usb/%s" % rutefil, "r", errors="ignore") as infile:
+                                            for line in infile:
+                                                try:
+                                                    t = re.search("^CreateDate,.*dag\.(\D*)(\d?\d)\.(\d\d\d\d)-(\d?\d):(\d?\d):(\d?\d)", line)
+                                                    if(t):
+                                                        maaned = t.group(1)
+                                                        maaned = maaned.replace("januar", "January")
+                                                        maaned = maaned.replace("februar", "February")
+                                                        maaned = maaned.replace("mars", "March")
+                                                        maaned = maaned.replace("april", "April")
+                                                        maaned = maaned.replace("mai", "May")
+                                                        maaned = maaned.replace("juni", "June")
+                                                        maaned = maaned.replace("juli", "July")
+                                                        maaned = maaned.replace("august", "August")
+                                                        maaned = maaned.replace("september", "September")
+                                                        maaned = maaned.replace("oktober", "October")
+                                                        maaned = maaned.replace("november", "November")
+                                                        maaned = maaned.replace("desember", "December")
+                                                        rutedato = maaned+t.group(2).zfill(2)+t.group(3).zfill(2)+t.group(4).zfill(2)+t.group(5).zfill(2)+t.group(6).zfill(2)
+                                                        timestamp = int(time.mktime(datetime.datetime.strptime(rutedato, "%B%d%Y%H%M%S").timetuple()))
+                                                except:
+                                                    print("datotroebbel")
+                                                w = re.search("^WP,", line)
+                                                if(w):
+                                                    wp = line.split(",")
+                                                    lat = float(wp[3])+float(wp[4])/60
+                                                    lon = float(wp[6])+float(wp[7])/60
+                                                    if(wp[2] == 'S'):
+                                                        lat = -lat
+                                                    if(wp[5] == "W"):
+                                                        lon = -lon
+                                                    lat = lat*60
+                                                    lon = lon*60
+                                                    tilolex.append(str(lat)+" "+str(lon))
+                                        olexut = open("/mnt/usb/olexfradp/"+os.path.splitext(rutefil)[0], "w")
+                                        olexut.write("Ferdig forenklet\n\n")
+                                        olexut.write("Rute "+os.path.splitext(rutefil)[0]+"\n")
+                                        olexut.write("Linjefarge Svart\n")
+                                        for w in tilolex:
+                                            olexut.write(w+" "+str(timestamp)+" Brunsirkel\n")
+                                        olexut.write("\n\n")
+                                        olexut.close()
+
+                                        GPIO.output(powerled, 1)
+                                        time.sleep(.1)
+                                        GPIO.output(powerled, 0)
+                                    except:
+                                        print("FEIL MED DP TIL OLEX")
+                                        for e in sys.exc_info():
+                                            print(e)
+
+
+
                                 elif(rutefil.endswith(".csv")): #CSV til OLEX
                                     try:
                                         csvtilsosi(rutefil, 0, True)
