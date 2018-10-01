@@ -159,7 +159,6 @@ while(True):
                                             ft.append(li)
                                         for l in ft:
                                             l= l.decode("utf-8", errors="ignore")
-                                            print(l)
                                             n = re.match("^(-?\d*\.\d*) (-?\d*\.\d*)", l)
                                             if(n):
                                                 lat = float(n.group(1)) / 60
