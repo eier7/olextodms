@@ -154,8 +154,12 @@ while(True):
                                         odp = open("/mnt/usb/%s" % os.path.splitext(rutefil)[0] + ".tmp", "w+", encoding="latin-1")
                                         print("\nkonverterer til "+os.path.splitext(rutefil)[0]+".csv\n")
                                         zonenumber=33
-                                        for l in f:
+                                        ft = []
+                                        for li in f:
+                                            ft.append(li)
+                                        for l in ft:
                                             l= l.decode("utf-8", errors="ignore")
+                                            print(l)
                                             n = re.match("^(-?\d*\.\d*) (-?\d*\.\d*)", l)
                                             if(n):
                                                 lat = float(n.group(1)) / 60
@@ -163,14 +167,16 @@ while(True):
                                                 utmt = utm.from_latlon(lat,lon)
                                                 zonenumber=utmt[2]
                                                 break
-                                        for line in f:
+                                        for line in ft:
                                             line = line.decode("utf-8", errors="ignore")
+                                            print(line)
                                             odp.write(line)
                                             timesearch = re.match("^-?\d*\.\d* -?\d*\.\d* (\d*)", line)
                                             if(timesearch):
                                                 timestamp = timesearch.group(1)
                                             m = re.match("^(-?\d*\.\d*) (-?\d*\.\d*)", line)
                                             if(m):
+                                                print(m)
                                                 lat = float(m.group(1)) / 60
                                                 lon = float(m.group(2)) / 60
                                                 utmd = utm.from_latlon(lat,lon, force_zone_number=zonenumber)
